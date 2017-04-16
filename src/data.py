@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 team_stats = {}
-stat_fields = ['score', 'fgm', 'fga', 'fgm3', 'fga3', 'ftm', 'fta', 'or', 'dr',
+stat_fields = ['wpct', 'score', 'fgm', 'fga', 'fgm3', 'fga3', 'ftm', 'fta', 'or', 'dr',
     'ast', 'to', 'stl', 'blk', 'pf', 'o_score', 'o_fgm', 'o_fga','o_fgm3', 'o_fga3',
     'o_ftm', 'o_fta', 'o_or', 'o_dr', 'o_ast', 'o_to', 'o_stl','o_blk','o_pf']
 
@@ -27,21 +27,29 @@ def get_dataframes():
 # get temporary team stats for a current point in the season while generating test cases
 def get_stat_temp(season, team, field):
     try:
-        stat = team_stats[season][team][field]
-        return sum(stat) / float(len(stat))
+        if (field == 'wpct'):
+            stat = team_stats[season][team]['wins'] / team_stats[season][team]['gp']
+            return stat
+        else:
+            stat = team_stats[season][team][field]
+            return sum(stat) / float(len(stat))
     except:
         return 0
 
 # get final team stats for a season, passing in an array of team stats, to use for prediction
 def get_stat_final(season, team, field, team_stats):
     try:
-        stat = team_stats[season][team][field]
-        return sum(stat) / float(len(stat))
+        if (field == 'wpct'):
+            stat = team_stats[season][team]['wins'] / team_stats[season][team]['gp']
+            return stat
+        else:
+            stat = team_stats[season][team][field]
+            return sum(stat) / float(len(stat))
     except:
         return 0
 
 # update team stats based on most recent game
-def update_stats(season, team, fields):
+def update_stats(season, team, fields, won):
     if team not in team_stats[season]:
         team_stats[season][team] = {}
 
@@ -55,6 +63,18 @@ def update_stats(season, team, fields):
             team_stats[season][team][key].pop()
 
         team_stats[season][team][key].append(value)
+
+    gp = 'gp'
+    wins = 'wins'
+
+    if gp not in team_stats[season][team]:
+        team_stats[season][team][gp] = 1
+        team_stats[season][team][wins] = 1
+    else:
+        team_stats[season][team][gp] = team_stats[season][team][gp] + 1
+        if (won == 1):
+            team_stats[season][team][wins] = team_stats[season][team][wins] + 1
+
 
 # use outside of this file when we want to get game features so that we can predict using any model
 def get_game_features(team_1, team_2, loc, season, all_stats):
@@ -149,13 +169,16 @@ def build_season_data(data):
             team_1_stat = get_stat_temp(row['Season'], row['Wteam'], field)
             team_2_stat = get_stat_temp(row['Season'], row['Lteam'], field)
 
-            if team_1_stat is not 0 and team_2_stat is not 0:
-                team_1_features.append(team_1_stat)
-                team_2_features.append(team_2_stat)
-            else:
-                skip = 1
+            team_1_features.append(team_1_stat)
+            team_2_features.append(team_2_stat)
 
-        # if skip = 0, it is the first game of the season so we have no prior statistics (everything is 0)
+        try:
+            if (team_stats[season][team]['gp'] < 15):
+                skip = 1
+        except:
+            skip = 1
+
+        # if skip = 1, one of the teams has not yet played 15 games so we don't include it in training data
         # We label as '0' if team1 won, label as '1' if team2 won
         if skip == 0:
             if randNum > 0.5:
@@ -226,8 +249,8 @@ def build_season_data(data):
             'o_blk': row['Wblk'],
             'o_pf': row['Wpf']
         }
-        update_stats(row['Season'], row['Wteam'], stat_1_fields)
-        update_stats(row['Season'], row['Lteam'], stat_2_fields)
+        update_stats(row['Season'], row['Wteam'], stat_1_fields, 1)
+        update_stats(row['Season'], row['Lteam'], stat_2_fields, 0)
 
     trainX = np.array(X)
     trainY = np.array(y)
