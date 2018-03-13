@@ -240,3 +240,17 @@ def get_data(tourney_year):
 
 if __name__ == "__main__":
     trainingX, trainingY, team_stats = get_data(2018)
+    trainingX.tofile('./data/cooked/trainingX')
+    trainingY.tofile('./data/cooked/trainingY')
+    team_stats.tofile('./data/cooked/team_stats')
+
+
+
+fout = "./data/cooked/teamstats.txt"
+fo = open(fout, "w")
+
+for k, v in team_stats.items():
+    fo.write(str(k) + ' >>> '+ str(v) + '\n\n')
+
+fo.close()
+
