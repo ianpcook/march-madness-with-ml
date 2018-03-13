@@ -1,4 +1,4 @@
-import data
+from src import data
 import numpy as np
 from sklearn import linear_model
 
@@ -42,7 +42,7 @@ def predict(model, test_data, matchups):
         matchups[i].append(predictions[i][0])
 
     results = np.array(matchups)
-    np.savetxt("Regression_Probs_2017.csv", results, delimiter=",", fmt='%s')
+    np.savetxt("../predictions/Regression_Probs_2017.csv", results, delimiter=",", fmt='%s')
 
 if __name__ == "__main__":
     model, test_data, matchups = train()
